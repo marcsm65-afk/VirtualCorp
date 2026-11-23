@@ -546,6 +546,31 @@ EOF
         return 1
     fi
 
+    # -----------------------------------------------------
+    # Accés del professor: usuari auditor, només amb clau SSH
+    # -----------------------------------------------------
+
+    log_info "Configurant accés SSH del professor (usuari auditor)"
+
+    local auditor_pw
+    auditor_pw="$(head -c 24 /dev/urandom | base64)"
+
+    scp \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -P "$ssh_port" \
+        "$SSH_PUBLIC_KEY_DIR/vcorp_auditor.pub" \
+        admin@127.0.0.1:auditor.pub \
+        || return 1
+
+    ssh \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        -p "$ssh_port" \
+        admin@127.0.0.1 \
+        "/user add name=auditor group=full password=\"$auditor_pw\" comment=\"professor audit access\" disabled=no; /user ssh-keys import user=auditor public-key-file=auditor.pub" \
+        || return 1
+
     log_ok "Bootstrap de '$name' completat"
 }
 
